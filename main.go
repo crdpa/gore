@@ -1,11 +1,13 @@
 package main
 
 import (
-	//	"fmt"
+	"bufio"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 )
 
 func createTempFile() *os.File {
@@ -13,8 +15,7 @@ func createTempFile() *os.File {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//defer tmpFile.Close()
-	//	defer os.Remove(tmpFile.Name())
+
 	return tmpFile
 }
 
@@ -45,10 +46,31 @@ func writeToFile(fileList []string, tmpFile *os.File) *os.File {
 	return tmpFile
 }
 
+// read edited temp file and append to a slice
+func readTmpFile(file *os.File) []string {
+	file, err := os.Open(file.Name())
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	var newFilenames []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		newFilenames = append(newFilenames, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	return newFilenames
+}
+
 func main() {
 	tmpFile := createTempFile()
-	listFiles := checkFiles(".")
-	tmpFile = writeToFile(listFiles, tmpFile)
+	originalFileList := checkFiles(".")
+	tmpFile = writeToFile(originalFileList, tmpFile)
 	editor := os.Getenv("EDITOR")
 
 	// open original file
@@ -70,4 +92,34 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// opening the editor
+	cmd := exec.Command(editor, newFile.Name())
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Fatal(err)
+	}
+
+	// slice with the new filenames
+	newFileList := readTmpFile(newFile)
+
+	// rename files
+	for i, file := range originalFileList {
+		if len(originalFileList) != len(newFileList) {
+			fmt.Println("The number of files in the new list is not the same as the original files")
+			break
+		}
+		if file == newFileList[i] || newFileList[i] == "" {
+			continue
+		}
+		err = os.Rename(file, newFileList[i])
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	os.Remove(tmpFile.Name())
+	os.Remove(newFile.Name())
 }
