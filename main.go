@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 func createTempFile() *os.File {
@@ -28,6 +29,10 @@ func checkFiles(path string) []string {
 	}
 
 	for _, file := range files {
+		// skip filenames with \n
+		if strings.Contains(file.Name(), "\n") {
+			continue
+		}
 		listFiles = append(listFiles, file.Name())
 	}
 	return listFiles
