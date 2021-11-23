@@ -5,7 +5,7 @@ GORE is a bulk file renamer written in Go as a personal project to learn program
 
 Run GORE in the directory you want to rename files. It will open $EDITOR with the filenames. Change the names, save and quit. It will rename every file you changed.
 
-Install: just download a release, uncompress and run it.
+Install: just download a release, extract and run it.
 
 ----
 
